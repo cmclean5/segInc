@@ -51,7 +51,7 @@ In contrast, this project explores:
 - fitting log-linear **ordinary least squared (OLS)** regression, modelling the 
   log-transformed incidence as a linear function of year of cancer diagnosis
 - estimating breakpoints using `segmented::segmented()`,
-- selecting among candidate numbers of breakpoints using a **wBIC** criterion in **Kim et al. 2023**.
+- selecting among candidate numbers of breakpoints using a **wBIC** criterion in **Kim et al. (*2023, J. Appl. Stat.*)**.
 
 These approaches often agree qualitatively, but can differ because of:
 - different breakpoint search/initialisation strategies,
