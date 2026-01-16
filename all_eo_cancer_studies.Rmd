@@ -1,0 +1,557 @@
+---
+title: |
+       | Cancer Incidence Ci5 study
+       | 
+author: "Colin Mclean"
+date: "`r format(Sys.Date(), '%d %B %Y')`"
+output: 
+  html_document:
+    css: phs_style.css
+    toc: true
+    toc_float: true
+keep_md: true
+---
+
+
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache=TRUE, warning=FALSE, dpi = 300)
+
+# Copy in the PHS style CSS file if required
+if (!file.exists(file.path(getwd(), "phs_style.css"))) {
+  phstemplates::add_stylecss(getwd(), auto_open = FALSE)
+}
+
+knitr::opts_chunk$set(
+  knitr::opts_template$set(
+    fullwidth = list(
+    fig.width = 10, fig.height = 6,
+    fig.retina = 2, out.width = '100%'),
+    sideplots = list(
+    fig.show="hold",
+    fig.width = 10, fig.height = 6,
+    fig.retina = 2, out.width = '100%')
+    ))
+
+## libraries
+library(here)
+library(tidyverse)
+library(data.table)
+library(lubridate)
+library(scales)
+library(ggplot2)
+library(patchwork)
+library(gridExtra)
+library(kableExtra)
+library(dplyr) 
+library(flextable)
+library(officer)
+library(magrittr)
+
+## Jointpoint model
+library(segmented)
+
+## Proportions analysis
+library(nnet)
+library(mgcv)
+
+## Kendall
+library(Kendall)
+
+
+## source scripts
+source(here('utils.R'),         local=knitr::knit_global())
+source(here("my_ggtheme.R"),    local=knitr::knit_global())
+source(here("CI5_cancer_ids.R"),local=knitr::knit_global())
+
+br.wd = 1
+
+leq_uicode="\u2264"
+geq_unicode="\u2265"
+
+```
+
+
+```{r, cache.lazy=FALSE}
+## Select country codes:
+## Scotland: 82602099
+## England:  82600199
+country_codes = c("82600199", "82602099")
+
+```
+
+
+```{r}
+## Read in Ci5plus data
+
+file_name = "Ci5plus/data.csv"
+
+ci5_data <- read_csv(file_name) %>%
+            filter( id_code %in% country_codes )
+
+```
+
+
+```{r}
+
+age_band_map <- c(
+  "1"  = "0-4",
+  "2"  = "5-9",
+  "3"  = "10-14",
+  "4"  = "15-19",
+  "5"  = "20-24",
+  "6"  = "25-29",
+  "7"  = "30-34",
+  "8"  = "35-39",
+  "9"  = "40-44",
+  "10" = "45-49",
+  "11" = "50-54",
+  "12" = "55-59",
+  "13" = "60-64",
+  "14" = "65-69",
+  "15" = "70-74",
+  "16" = "75-79",
+  "17" = "80-84",
+  "18" = "85+",
+  "19" = "All ages"
+)
+
+## Select age-bands groups and fit parameters to study cancer incidence rates
+## option == 0, age-bands defined by (Sung et al. 2025)
+## option == 1, custom age-bands
+study <- c(0,1)[1]
+
+if( study==0){
+## (Sung et al. 2025)
+  
+early_age_bands     = c("25-29", "30-34", "35-39", "40-44", "45-49")
+early_sub_age_bands = NULL
+late_age_bands      = c("50-54", "55-59", "60-64", "65-69", "70-74")
+
+plot.titles = c("late"="Late, 50-85+ years", "sub_early"=NA, "early"="Early, 20-39 years")
+
+model_fit = list("late"=list("fit"="jp_one", "labs"="late, 50-74"),
+                 "early"=list("fit"="jp_one", "labs"="early, 20-49"))
+
+age_group_models = c("early"="sg1", "late"="sg1")
+
+legend.labs = c("late"="late, 50-74", "sub_early"=NA, "early"="early, 25-49")
+
+y_axis_breaks       = c(0.1,1,2,3,4,5,7,10,20,30,50,70,100,200,400) 
+
+scot_groups = c("early"="ll", "late"="sg1")
+x_groups    = c("early"="sg1", "late"="sg1")
+x_age_bands = c("early"="25-49 years", "late"="50-74 years")
+
+} 
+
+if( study == 1){
+  
+early_age_bands     = c("15-19","20-24", "25-29", "30-34", "35-39")
+early_sub_age_bands = c("40-44", "45-49")
+late_age_bands      = c("50-54", "55-59", "60-64", "65-69", "70-74", "75-79", "80-84", "85+")
+
+plot.titles = c("late"="Late, 50-85+ years", "sub_early"="Early, 40-49 years", "early"="Early, 15-39 years")
+
+model_fit = list("late"=list("fit"="jp_one", "labs"= paste0("late, ", geq_unicode, " 50")),
+                             "sub_early"=list("fit"="jp_one", "labs"="early, 40-49"),
+                             "early"=list("fit"="jp_one", "labs"="early, 15-39"))
+
+age_group_models = c("early"="sg1", "sub_early"="sg1", "late"="sg1")
+
+legend.labs = c("late"=paste0("late, ", geq_unicode, " 50"), "sub_early"="early, 40-49", "early"="early, 15-39")
+
+y_axis_breaks     = c(0.1,1,2,3,4,5,7,10,20,30,50,70,100,200,300,460)
+
+scot_groups = c("early"="sg1", "sub_early"="ll", "late"="sg1")
+x_groups    = c("early"="sg1", "sub_early"="sg1", "late"="sg1")
+x_age_bands = c("early"="15-39 years", "early"="40-49 years", "late"="50-85+ years")
+
+}
+
+model_type = c("segi"="asr", "epm13"="asr")[2]
+
+
+## Define cancer types under investigation
+targets            = c("gi_non_crc", "colorectal", "kidney", "corpus_uteri", "breast")
+targets2           = c("oesophagus", "stomach", "pancreas", "gallbladder", "liver")
+
+cancer.tit = c("colorectal"    = "colorectal (CRC)",
+             "breast"          = "breast",
+             "kidney"          = "kidney",
+             "gi_non_crc"      = "upper-GI",
+             "corpus_uteri"    = "uterine",
+             "other"           = "Other cancers")
+
+## Choose BIC metric for mode gof
+bic_metrics = c("bic","bic3","wbic")
+bic_metric  = bic_metrics[3]
+
+```
+
+
+# All Cancers (Scotland)
+
+
+```{r}
+
+scot = list()
+
+for( i in 1:length(cancer_sites) ){
+
+## Scotland
+ci5_scot = suppressWarnings(incidence_rates_ci5(x=ci5_data, 
+                               model_type = names(model_type),                  
+                               cancer_id = cancer_sites[[i]],
+                               country_id = "82602099",
+                               early_age_bands     = early_age_bands,
+                               early_sub_age_bands = early_sub_age_bands,
+                               late_age_bands      = late_age_bands ))
+
+scot[[i]] = ci5_scot
+
+names(scot)[i] = names(cancer_sites)[i]
+
+}
+
+```
+
+
+# Cancer Subset (Scotland)
+
+
+```{r}
+
+## Filter cancers
+subset_scot = list()
+fit_scot    = list()
+k=1
+for( i in 1:length(scot) ){
+  if(names(scot)[i] %in% targets){
+    subset_scot[[k]] = scot[[i]]$rates
+    names(subset_scot)[k] = names(scot)[i]
+    
+    fit_scot[[k]] = ci5_data_fit(x=scot[[i]]$rates)
+    names(fit_scot)[k] = names(scot)[i]
+    
+    k=k+1
+  }
+}
+
+```
+
+
+# Fit Cancer Rates (Scotland)
+
+
+```{r}
+
+plts_fit_scot = list()
+aapc_scot     = list()
+
+for( i in 1:length(fit_scot) ){
+  
+  model_scot = model_fit
+  model_opts = age_group_models 
+  
+  for( j in 1:length(model_opts) ){
+    
+    age_band = names(model_opts)[j]
+    
+    tmp  = fit_scot[[i]][[age_band]][["bic"]]
+    
+    gofs = data.table::rbindlist(tmp, fill=TRUE, idcol="jps")
+    
+    best_model = gofs$jps[sapply(gofs[,.SD,.SDcols=bic_metric], which.min)] 
+   
+     switch(best_model,
+          "none" = {model_scot[[age_band]]$fit = "jp_none";
+                    model_opts[age_band]       = "ll";
+                   },
+          "one" = {model_scot[[age_band]]$fit = "jp_one";
+                   model_opts[age_band]       = "sg1";
+                  },
+          "two" = {model_scot[[age_band]]$fit = "jp_two";
+                   model_opts[age_band]       = "sg2";
+                  })
+  }
+  
+  country     = "Scotland (UK)"
+  cancer_type = cancer.tit[which(names(cancer.tit)==names(subset_scot)[i])][[1]]
+  main_title  = paste(cancer_type, ",", country)
+  
+  aapc_scot[[i]] = get_aapc(fit=fit_scot[[i]], cancer=cancer_type, country=country, 
+                            groups=model_opts, age_bands=x_age_bands)
+  
+  gp_scot <- ci5_data_fit_plot(x=fit_scot[[i]],
+                               model_fit = model_scot,
+                               y_axis_breaks = y_axis_breaks)+
+                              labs(title=main_title)
+
+
+  plts_fit_scot[[i]] = gp_scot
+  names(plts_fit_scot)[i] = names(fit_scot)[i]
+
+}
+
+```
+
+
+# 10-year AAPC (Scotland)
+
+
+<Div custom-style = "Table or chart caption">Scotland AAPC Estimates</Div>
+```{r aapc_table_scot, echo=FALSE, ft.align = "left"}
+
+ aapc_table = bind_rows(aapc_scot)
+
+
+flextable(aapc_table, theme_fun = NULL) %>%
+       my_ft_format() %>%
+       #bold(i = nrow(aapc_table)) %>%
+       align(j = 2, align = "right", part = "body") %>%
+       height(height = 0.236, part = "body") %>%
+       hrule(rule = "atleast", part = "body") %>%
+       width(width = 3.2)#1.26)
+```
+
+
+```{r}
+
+sub_plts_fit_scot = plts_fit_scot[names(plts_fit_scot) %in% targets]
+
+```
+
+
+```{r, fig.width=21, fig.height=6}
+
+Ncols = length(sub_plts_fit_scot)
+
+sub_plts_fit_scot[[1]] <- sub_plts_fit_scot[[1]]+
+  labs(
+    title = "Scotland (UK)",
+    subtitle = cancer.tit[which(names(cancer.tit)==names(subset_scot)[1])], 
+    x=NULL)+
+    theme(
+          legend.position = "none",
+          plot.title = element_text(face="bold", size=24, hjust = 0),
+          plot.subtitle = element_text(face="bold", size=18, hjust = 0))
+
+for( i in 2:Ncols){
+sub_plts_fit_scot[[i]] <- sub_plts_fit_scot[[i]]+
+  labs(
+    x=NULL,
+    y=NULL,
+    title=NULL,
+    subtitle=cancer.tit[which(names(cancer.tit)==names(subset_scot)[i])])+
+    theme(legend.position = "none",
+          plot.title = element_text(face="bold", size=20, hjust = 0),
+          plot.subtitle = element_text(face="bold", size=18, hjust = 0))
+}
+
+
+comb_scot_plts <- patchwork::wrap_plots(sub_plts_fit_scot, ncol=Ncols) +
+  patchwork::plot_annotation(tag_levels = 'A')
+
+#comb_scot_plts
+
+```
+
+
+# All Cancers (England)
+
+
+```{r}
+
+eng = list()
+
+for( i in 1:length(cancer_sites) ){
+
+## England
+ci5_eng = suppressWarnings(incidence_rates_ci5(x=ci5_data, 
+                           model_type = names(model_type),
+                           cancer_id = cancer_sites[[i]],
+                           country_id =  "82600199",
+                           early_age_bands     = early_age_bands,
+                           early_sub_age_bands = early_sub_age_bands,
+                           late_age_bands      = late_age_bands ))
+
+eng[[i]] = ci5_eng
+
+names(eng)[i] = names(cancer_sites)[i]
+
+}
+
+```
+
+
+# Cancer Subset (England)
+
+
+```{r}
+
+## Filter cancers
+subset_eng = list()
+fit_eng = list()
+k=1
+for( i in 1:length(eng) ){
+  
+  ## Select cancer types found in England
+  if( names(eng)[i] %in% targets ){
+    subset_eng[[k]] = eng[[i]]$rates
+    names(subset_eng)[k] = names(eng)[i]
+    
+    fit_eng[[k]] = ci5_data_fit(x=eng[[i]]$rates)
+    names(fit_eng)[k] = names(eng)[i]
+    
+    k=k+1
+  }
+}
+
+```
+
+
+# Fit Cancers (England)
+
+
+```{r}
+
+plts_fit_eng = list()
+aapc_eng     = list()
+
+for( i in 1:length(fit_eng) ){
+  
+  model_eng  = model_fit
+  model_opts = age_group_models 
+  
+  for( j in 1:length(model_opts) ){
+    
+    age_band = names(model_opts)[j]
+    
+    tmp  = fit_eng[[i]][[age_band]][["bic"]]
+    
+    gofs = data.table::rbindlist(tmp, fill=TRUE, idcol="jps")
+    
+    best_model = gofs$jps[sapply(gofs[,.SD,.SDcols=bic_metric], which.min)] 
+   
+     switch(best_model,
+          "none" = {model_eng[[age_band]]$fit = "jp_none";
+                    model_opts[age_band]       = "ll";
+                   },
+          "one" = {model_eng[[age_band]]$fit = "jp_one";
+                   model_opts[age_band]       = "sg1";
+                  },
+          "two" = {model_eng[[age_band]]$fit = "jp_two";
+                   model_opts[age_band]       = "sg2";
+                  })
+    }
+  
+  country     = "England (UK)"
+  cancer_type = cancer.tit[which(names(cancer.tit)==names(subset_eng)[i])][[1]]
+  main_title  = paste(cancer_type, ",", country)
+  
+  aapc_eng[[i]] = get_aapc(fit=fit_eng[[i]], cancer=cancer_type, country=main_title, 
+                           groups=model_opts, age_bands=x_age_bands)
+  
+  gp_eng <- ci5_data_fit_plot(x=fit_eng[[i]],
+                               model_fit = model_eng,
+                               y_axis_breaks = y_axis_breaks)+
+                               labs(title=main_title)
+
+
+  plts_fit_eng[[i]] = gp_eng
+  names(plts_fit_eng)[i] = names(fit_eng)[i]
+
+}
+
+```
+
+
+# 10-year AAPC (England)
+
+
+<Div custom-style = "Table or chart caption">England AAPC Estimates</Div>
+```{r aapc_table_eng, echo=FALSE, ft.align = "left"}
+
+aapc_table = bind_rows(aapc_eng)
+
+
+flextable(aapc_table, theme_fun = NULL) %>%
+       my_ft_format() %>%
+       #bold(i = nrow(aapc_table)) %>%
+       align(j = 2, align = "right", part = "body") %>%
+       height(height = 0.236, part = "body") %>%
+       hrule(rule = "atleast", part = "body") %>%
+       width(width = 3.2)#1.26)
+```
+
+
+```{r}
+
+sub_plts_fit_eng = plts_fit_eng[names(plts_fit_eng) %in% targets]
+
+```
+
+
+
+```{r, fig.width=21, fig.height=6}
+
+Ncols = length(sub_plts_fit_eng)
+
+
+sub_plts_fit_eng[[1]] <- sub_plts_fit_eng[[1]]+
+   labs(
+    title = "England (UK)",
+    subtitle = cancer.tit[which(names(cancer.tit)==names(subset_eng)[1])], 
+    x=NULL)+
+    theme(
+          legend.position = "none",
+          plot.title = element_text(face="bold", size=24, hjust = 0),
+          plot.subtitle = element_text(face="bold", size=18, hjust = 0))
+  
+
+for( i in 2:Ncols){
+sub_plts_fit_eng[[i]] <- sub_plts_fit_eng[[i]]+
+  labs(
+    x=NULL,
+    y=NULL,
+    title=NULL,
+    subtitle=cancer.tit[which(names(cancer.tit)==names(subset_eng)[i])])+
+    theme(legend.position = "none",
+          plot.title = element_text(face="bold", size=20, hjust = 0),
+          plot.subtitle = element_text(face="bold", size=18, hjust = 0))
+}
+
+
+indx = which(names(sub_plts_fit_eng)=="breast")
+sub_plts_fit_eng[[indx]] <- sub_plts_fit_eng[[indx]]+
+                             labs(
+                               x=NULL,
+                               y=NULL,
+                               title=NULL,
+                               subtitle=cancer.tit[which(names(cancer.tit)==names(subset_eng)[indx])])+
+                            guides(color = guide_legend(title = NULL))+
+                            theme(
+                              legend.text = element_text(size = 18),
+                              legend.key.size = unit(2, 'cm'),
+                              legend.position = "bottom")
+
+comb_eng_plts2 <- patchwork::wrap_plots(sub_plts_fit_eng, ncol=Ncols) +
+  patchwork::plot_annotation(tag_levels =  'A')
+
+#comb_eng_plts2
+
+```
+
+
+# Plot Cancer Rates
+
+
+```{r, fig.width=21, fig.height=12}
+
+comb_both = comb_scot_plts / comb_eng_plts2 +  patchwork::plot_annotation(tag_levels = 'A')
+
+comb_both
+
+```
+
