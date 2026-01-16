@@ -36,6 +36,10 @@ Comparator age bands to mirror the colorectal comparison in **Sung et al. (2025)
 
 ---
 
+![study plot](plots/ci5_cancer_rates.png)
+
+---
+
 ## Why segmented regression (and how it relates to Joinpoint)
 
 The **NCI Joinpoint** software fits piecewise log-linear trends and typically selects joinpoints via permutation tests and related criteria.
