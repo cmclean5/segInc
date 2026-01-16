@@ -1,6 +1,6 @@
 # segInc
 
-**segInc** is an experimental R package for estimating and comparing **cancer incidence trends** in **CI5plus** using **segmented (piecewise) regression** via the [`segmented`](https://cran.r-project.org/package=segmented) R package, and selecting breakpoint models using a **weighted BIC (wBIC)** approach.
+**segInc** is an experimental R package for estimating and comparing **cancer incidence trends** in **CI5plus** using **segmented (piecewise) regression** via the [`segmented`](https://cran.r-project.org/package=segmented) R package, and selecting breakpoint models using a **weighted BIC (wBIC)** approach in **Kim et al. (*2023, J. Appl. Stat.*)**.
 
 This repository is also a **methods case study** intended to align (as closely as practical) with analyses using the **NCI Joinpoint Regression Program**, as used in **Sung et al. (2025, *The Lancet*)** for CI5plus-based trend analyses—while documenting where results may differ due to different optimisation and model-selection strategies.
 
@@ -51,7 +51,7 @@ In contrast, this project explores:
 - fitting log-linear **ordinary least squared (OLS)** regression, modelling the 
   log-transformed incidence as a linear function of year of cancer diagnosis
 - estimating breakpoints using `segmented::segmented()`,
-- selecting among candidate numbers of breakpoints using a **wBIC** criterion in **Kim et al. (*2023, J. Appl. Stat.*)**.
+- selecting among candidate numbers of breakpoints using a **wBIC** criterion in **Kim et al. (*2023*)**.
 
 These approaches often agree qualitatively, but can differ because of:
 - different breakpoint search/initialisation strategies,
