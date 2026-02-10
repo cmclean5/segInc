@@ -36,6 +36,10 @@ Comparator age bands to mirror the colorectal comparison in **Sung et al. (2025)
 
 ---
 
+![study plot](plots/ci5_cancer_3_bands_rates.png)
+
+---
+
 ![study plot](plots/ci5_cancer_rates.png)
 
 ---
