@@ -84,7 +84,8 @@ country_codes = c("82600199", "82602099")
 ```{r}
 ## Read in Ci5plus data
 
-file_name = "Ci5plus/data.csv"
+#file_name = "Ci5plus/data.csv"
+file_name = "~/ownCloud/Cancer_Informatics/Colorectal_Cancer/Images_for_Talks/CI5_analysis/Ci5plus/data.csv"
 
 ci5_data <- read_csv(file_name) %>%
             filter( id_code %in% country_codes )
@@ -119,55 +120,113 @@ age_band_map <- c(
 ## Select age-bands groups and fit parameters to study cancer incidence rates
 ## option == 0, age-bands defined by (Sung et al. 2025)
 ## option == 1, custom age-bands
-study <- c(0,1)[1]
+set_study_age_bands <- function(option="1"){
 
-if( study==0){
-## (Sung et al. 2025)
+     early_age_bands     = NULL
+     early_sub_age_bands = NULL
+     late_age_bands      = NULL
+     plot.titles         = NULL
+     model_fit           = NULL
+     age_group_models    = NULL
+     legend.labs         = NULL
+     y_axis_breaks       = NULL
+     scot_groups         = NULL
+     x_groups            = NULL
+     x_age_bands         = NULL
+     legend.cols         = NULL
   
-early_age_bands     = c("25-29", "30-34", "35-39", "40-44", "45-49")
-early_sub_age_bands = NULL
-late_age_bands      = c("50-54", "55-59", "60-64", "65-69", "70-74")
+   
+  switch(option,
+         "1" = {
+          ## (Sung et al. 2025)
+          early_age_bands     = c("25-29", "30-34", "35-39", "40-44", "45-49")
+          early_sub_age_bands = NULL
+          late_age_bands      = c("50-54", "55-59", "60-64", "65-69", "70-74")
+          plot.titles         = c("late"="Late, 50-85+ years", "sub_early"=NA, "early"="Early, 20-39 years")
+          model_fit           = list("late"=list("fit"="jp_one", "labs"="late, 50-74"),
+                                     "early"=list("fit"="jp_one", "labs"="early, 25-49"))
+        age_group_models      = c("early"="sg1", "late"="sg1")
+        legend.labs           = c("late"="late, 50-74", "sub_early"=NA, "early"="early, 25-49")
+        legend.cols           = c("late"="blue", "sub_early"=NA, "early"="#FF0000")
+        y_axis_breaks         = c(1,2,3,4,5,7,10,20,30,50,70,100,200,300,460)
+        scot_groups           = c("early"="ll", "late"="sg1")
+        x_groups              = c("early"="sg1", "late"="sg1")
+        x_age_bands           = c("early"="25-49 years", "late"="50-74 years")
+      },
+      
+    "2" = {
 
-plot.titles = c("late"="Late, 50-85+ years", "sub_early"=NA, "early"="Early, 20-39 years")
+     early_age_bands     = c("15-19", "20-24", "25-29", "30-34", "35-39", "40-44", "45-49")
+     early_sub_age_bands = NULL
+     late_age_bands      = c("50-54", "55-59", "60-64", "65-69", "70-74", "75-79", "80-84", "85+")
+     plot.titles         = c("late"=paste0("Late, ", geq_unicode, " 50 years"), "sub_early"=NA, "early"="Early, 15-49 years")
+     model_fit           = list("late"=list("fit"="jp_one", "labs"= paste0("late, ", geq_unicode, " 50")),
+                                "early"=list("fit"="jp_one", "labs"="early, 15-49"))
+     age_group_models    = c("early"="sg1", "late"="sg1")
+     legend.labs         = c("late"=paste0("late, ", geq_unicode, " 50"), "sub_early"=NA, "early"="early, 15-49")
+     legend.cols           = c("late"="blue", "sub_early"=NA, "early"="#FF0000")
+     y_axis_breaks       = c(1,2,3,4,5,7,10,20,30,50,70,100,200,250)
+     scot_groups         = c("early"="ll", "late"="sg1")
+     x_groups            = c("early"="sg1", "late"="sg1")
+     x_age_bands         = c("early"="15-49 years", "late"="50-85+ years")
+     
+     },
+    
+     "3" = {
 
-model_fit = list("late"=list("fit"="jp_one", "labs"="late, 50-74"),
-                 "early"=list("fit"="jp_one", "labs"="early, 20-49"))
+     early_age_bands     = c("15-19", "20-24", "25-29", "30-34", "35-39", "40-44", "45-49")
+     early_sub_age_bands = NULL
+     late_age_bands      = c("50-54", "55-59", "60-64", "65-69", "70-74", "75-79", "80-84", "85+")
+     plot.titles         = c("late"=paste0("Late, ", geq_unicode, " 50 years"), "sub_early"=NA, "early"="Early, 15-49 years")
+     model_fit           = list("late"=list("fit"="jp_one", "labs"= paste0("late, ", geq_unicode, " 50")),
+                                "early"=list("fit"="jp_one", "labs"="early, 15-49"))
+     age_group_models    = c("early"="sg1", "late"="sg1")
+     legend.labs         = c("late"=paste0("late, ", geq_unicode, " 50"), "sub_early"=NA, "early"="early, 15-49")
+     legend.cols           = c("late"="blue", "sub_early"=NA, "early"="#FF0000")
+     y_axis_breaks       = c(1,2,3,4,5,7,10,20,30,50,70,100,200,250)
+     scot_groups         = c("early"="ll", "late"="sg1")
+     x_groups            = c("early"="sg1", "late"="sg1")
+     x_age_bands         = c("early"="15-49 years", "late"="50-85+ years")
+     
+     },
+    
+       "4" = {
 
-age_group_models = c("early"="sg1", "late"="sg1")
+       early_age_bands     = c("15-19","20-24", "25-29", "30-34", "35-39")
+       early_sub_age_bands = c("40-44", "45-49")
+       late_age_bands      = c("50-54", "55-59", "60-64", "65-69", "70-74", "75-79", "80-84", "85+")
+       plot.titles         = c("late"="Late, 50-85+ years", "sub_early"="Early, 40-49 years", "early"="Early, 15-39 years")
+       model_fit           = list("late"=list("fit"="jp_one", "labs"= paste0("late, ", geq_unicode, " 50")),
+                                  "sub_early"=list("fit"="jp_one", "labs"="early, 40-49"),
+                                  "early"=list("fit"="jp_one", "labs"="early, 15-39"))
+      age_group_models     = c("early"="sg1", "sub_early"="sg1", "late"="sg1")
+      legend.labs          = c("late"=paste0("late, ", geq_unicode, " 50"), "sub_early"="early, 40-49", "early"="early, 15-39")
+      legend.cols          = c("late"="blue", "sub_early"="#8B0000", "early"="#FF0000")
+      y_axis_breaks        = c(0.1,1,2,3,4,5,7,10,20,30,50,70,100,200,300,460)
+      scot_groups          = c("early"="sg1", "sub_early"="ll", "late"="sg1")
+      x_groups             = c("early"="sg1", "sub_early"="sg1", "late"="sg1")
+      x_age_bands          = c("early"="15-39 years", "early"="40-49 years", "late"="50-85+ years")
 
-legend.labs = c("late"="late, 50-74", "sub_early"=NA, "early"="early, 25-49")
-
-y_axis_breaks       = c(0.1,1,2,3,4,5,7,10,20,30,50,70,100,200,400) 
-
-scot_groups = c("early"="ll", "late"="sg1")
-x_groups    = c("early"="sg1", "late"="sg1")
-x_age_bands = c("early"="25-49 years", "late"="50-74 years")
-
-} 
-
-if( study == 1){
+    }
+ )
   
-early_age_bands     = c("15-19","20-24", "25-29", "30-34", "35-39")
-early_sub_age_bands = c("40-44", "45-49")
-late_age_bands      = c("50-54", "55-59", "60-64", "65-69", "70-74", "75-79", "80-84", "85+")
-
-plot.titles = c("late"="Late, 50-85+ years", "sub_early"="Early, 40-49 years", "early"="Early, 15-39 years")
-
-model_fit = list("late"=list("fit"="jp_one", "labs"= paste0("late, ", geq_unicode, " 50")),
-                             "sub_early"=list("fit"="jp_one", "labs"="early, 40-49"),
-                             "early"=list("fit"="jp_one", "labs"="early, 15-39"))
-
-age_group_models = c("early"="sg1", "sub_early"="sg1", "late"="sg1")
-
-legend.labs = c("late"=paste0("late, ", geq_unicode, " 50"), "sub_early"="early, 40-49", "early"="early, 15-39")
-
-y_axis_breaks     = c(0.1,1,2,3,4,5,7,10,20,30,50,70,100,200,300,460)
-
-scot_groups = c("early"="sg1", "sub_early"="ll", "late"="sg1")
-x_groups    = c("early"="sg1", "sub_early"="sg1", "late"="sg1")
-x_age_bands = c("early"="15-39 years", "early"="40-49 years", "late"="50-85+ years")
-
+ return(list(
+     early_age_bands     = early_age_bands,
+     early_sub_age_bands = early_sub_age_bands,
+     late_age_bands      = late_age_bands,
+     plot.titles         = plot.titles,
+     model_fit           = model_fit,
+     age_group_models    = age_group_models,
+     legend.labs         = legend.labs,
+     legend.cols         = legend.cols,
+     y_axis_breaks       = y_axis_breaks,
+     scot_groups         = scot_groups,
+     x_groups            = x_groups,
+     x_age_bands         = x_age_bands
+ ))
+   
 }
+
 
 model_type = c("segi"="asr", "epm13"="asr")[2]
 
@@ -192,6 +251,12 @@ bic_metric  = bic_metrics[3]
 
 # All Cancers (Scotland)
 
+```{r}
+
+inc_study  = set_study_age_bands(option="4")
+
+```
+
 
 ```{r}
 
@@ -204,9 +269,9 @@ ci5_scot = suppressWarnings(incidence_rates_ci5(x=ci5_data,
                                model_type = names(model_type),                  
                                cancer_id = cancer_sites[[i]],
                                country_id = "82602099",
-                               early_age_bands     = early_age_bands,
-                               early_sub_age_bands = early_sub_age_bands,
-                               late_age_bands      = late_age_bands ))
+                               early_age_bands     = inc_study[["early_age_bands"]],
+                               early_sub_age_bands = inc_study[["early_sub_age_bands"]],
+                               late_age_bands      = inc_study[["late_age_bands"]] ))
 
 scot[[i]] = ci5_scot
 
@@ -217,81 +282,37 @@ names(scot)[i] = names(cancer_sites)[i]
 ```
 
 
-# Cancer Subset (Scotland)
-
-
-```{r}
-
-## Filter cancers
-subset_scot = list()
-fit_scot    = list()
-k=1
-for( i in 1:length(scot) ){
-  if(names(scot)[i] %in% targets){
-    subset_scot[[k]] = scot[[i]]$rates
-    names(subset_scot)[k] = names(scot)[i]
-    
-    fit_scot[[k]] = ci5_data_fit(x=scot[[i]]$rates)
-    names(fit_scot)[k] = names(scot)[i]
-    
-    k=k+1
-  }
-}
-
-```
-
-
 # Fit Cancer Rates (Scotland)
 
 
 ```{r}
 
+## Filter cancers
+subset_scot   = list()
+rates_scot    = list()
+fit_scot      = list()
 plts_fit_scot = list()
 aapc_scot     = list()
 
-for( i in 1:length(fit_scot) ){
-  
-  model_scot = model_fit
-  model_opts = age_group_models 
-  
-  for( j in 1:length(model_opts) ){
+k=1
+for( i in 1:length(scot) ){
+  if(names(scot)[i] %in% targets){
     
-    age_band = names(model_opts)[j]
+    rates_scot[[k]]      = ci5_data_fit(x=scot[[i]]$rates)
+    names(rates_scot)[k] = names(scot)[i]
     
-    tmp  = fit_scot[[i]][[age_band]][["bic"]]
+    fit_scot[[k]] = fit_rates(x           = rates_scot[[k]],
+                              params      = inc_study,
+                              metric      = bic_metric,
+                              country     = "Scotland (UK)",
+                              cancer_type = names(cancer_sites)[i])
     
-    gofs = data.table::rbindlist(tmp, fill=TRUE, idcol="jps")
+    plts_fit_scot[[k]]      = fit_scot[[k]]$plt
+    names(plts_fit_scot)[k] = names(scot)[i]
+    aapc_scot[[k]]          = fit_scot[[k]]$aapc
     
-    best_model = gofs$jps[sapply(gofs[,.SD,.SDcols=bic_metric], which.min)] 
-   
-     switch(best_model,
-          "none" = {model_scot[[age_band]]$fit = "jp_none";
-                    model_opts[age_band]       = "ll";
-                   },
-          "one" = {model_scot[[age_band]]$fit = "jp_one";
-                   model_opts[age_band]       = "sg1";
-                  },
-          "two" = {model_scot[[age_band]]$fit = "jp_two";
-                   model_opts[age_band]       = "sg2";
-                  })
+    k=k+1
   }
-  
-  country     = "Scotland (UK)"
-  cancer_type = cancer.tit[which(names(cancer.tit)==names(subset_scot)[i])][[1]]
-  main_title  = paste(cancer_type, ",", country)
-  
-  aapc_scot[[i]] = get_aapc(fit=fit_scot[[i]], cancer=cancer_type, country=country, 
-                            groups=model_opts, age_bands=x_age_bands)
-  
-  gp_scot <- ci5_data_fit_plot(x=fit_scot[[i]],
-                               model_fit = model_scot,
-                               y_axis_breaks = y_axis_breaks)+
-                              labs(title=main_title)
-
-
-  plts_fit_scot[[i]] = gp_scot
-  names(plts_fit_scot)[i] = names(fit_scot)[i]
-
 }
 
 ```
@@ -330,7 +351,7 @@ Ncols = length(sub_plts_fit_scot)
 sub_plts_fit_scot[[1]] <- sub_plts_fit_scot[[1]]+
   labs(
     title = "Scotland (UK)",
-    subtitle = cancer.tit[which(names(cancer.tit)==names(subset_scot)[1])], 
+    subtitle = cancer.tit[which(names(cancer.tit)==names(plts_fit_scot)[1])], 
     x=NULL)+
     theme(
           legend.position = "none",
@@ -343,7 +364,7 @@ sub_plts_fit_scot[[i]] <- sub_plts_fit_scot[[i]]+
     x=NULL,
     y=NULL,
     title=NULL,
-    subtitle=cancer.tit[which(names(cancer.tit)==names(subset_scot)[i])])+
+    subtitle=cancer.tit[which(names(cancer.tit)==names(plts_fit_scot)[i])])+
     theme(legend.position = "none",
           plot.title = element_text(face="bold", size=20, hjust = 0),
           plot.subtitle = element_text(face="bold", size=18, hjust = 0))
@@ -369,12 +390,12 @@ for( i in 1:length(cancer_sites) ){
 
 ## England
 ci5_eng = suppressWarnings(incidence_rates_ci5(x=ci5_data, 
-                           model_type = names(model_type),
-                           cancer_id = cancer_sites[[i]],
-                           country_id =  "82600199",
-                           early_age_bands     = early_age_bands,
-                           early_sub_age_bands = early_sub_age_bands,
-                           late_age_bands      = late_age_bands ))
+                           model_type          = names(model_type),
+                           cancer_id           = cancer_sites[[i]],
+                           country_id          = "82600199",
+                           early_age_bands     = inc_study[["early_age_bands"]],
+                           early_sub_age_bands = inc_study[["early_sub_age_bands"]],
+                           late_age_bands      = inc_study[["late_age_bands"]] ))
 
 eng[[i]] = ci5_eng
 
@@ -385,83 +406,37 @@ names(eng)[i] = names(cancer_sites)[i]
 ```
 
 
-# Cancer Subset (England)
+# Fit Cancer Rates (England)
 
 
 ```{r}
 
 ## Filter cancers
-subset_eng = list()
-fit_eng = list()
-k=1
-for( i in 1:length(eng) ){
-  
-  ## Select cancer types found in England
-  if( names(eng)[i] %in% targets ){
-    subset_eng[[k]] = eng[[i]]$rates
-    names(subset_eng)[k] = names(eng)[i]
-    
-    fit_eng[[k]] = ci5_data_fit(x=eng[[i]]$rates)
-    names(fit_eng)[k] = names(eng)[i]
-    
-    k=k+1
-  }
-}
-
-```
-
-
-# Fit Cancers (England)
-
-
-```{r}
-
+subset_eng   = list()
+rates_eng    = list()
+fit_eng      = list()
 plts_fit_eng = list()
 aapc_eng     = list()
 
-for( i in 1:length(fit_eng) ){
-  
-  model_eng  = model_fit
-  model_opts = age_group_models 
-  
-  for( j in 1:length(model_opts) ){
+k=1
+for( i in 1:length(eng) ){
+  if(names(eng)[i] %in% targets){
     
-    age_band = names(model_opts)[j]
+    rates_eng[[k]]      = ci5_data_fit(x=eng[[i]]$rates)
+    names(rates_eng)[k] = names(eng)[i]
     
-    tmp  = fit_eng[[i]][[age_band]][["bic"]]
+    fit_eng[[k]] = fit_rates(x           = rates_eng[[k]],
+                              params      = inc_study,
+                              metric      = bic_metric,
+                              country     = "England (UK)",
+                              cancer_type = names(cancer_sites)[i])
     
-    gofs = data.table::rbindlist(tmp, fill=TRUE, idcol="jps")
+    plts_fit_eng[[k]]      = fit_eng[[k]]$plt
+    names(plts_fit_eng)[k] = names(eng)[i]
+    aapc_eng[[k]]          = fit_eng[[k]]$aapc
     
-    best_model = gofs$jps[sapply(gofs[,.SD,.SDcols=bic_metric], which.min)] 
-   
-     switch(best_model,
-          "none" = {model_eng[[age_band]]$fit = "jp_none";
-                    model_opts[age_band]       = "ll";
-                   },
-          "one" = {model_eng[[age_band]]$fit = "jp_one";
-                   model_opts[age_band]       = "sg1";
-                  },
-          "two" = {model_eng[[age_band]]$fit = "jp_two";
-                   model_opts[age_band]       = "sg2";
-                  })
-    }
-  
-  country     = "England (UK)"
-  cancer_type = cancer.tit[which(names(cancer.tit)==names(subset_eng)[i])][[1]]
-  main_title  = paste(cancer_type, ",", country)
-  
-  aapc_eng[[i]] = get_aapc(fit=fit_eng[[i]], cancer=cancer_type, country=main_title, 
-                           groups=model_opts, age_bands=x_age_bands)
-  
-  gp_eng <- ci5_data_fit_plot(x=fit_eng[[i]],
-                               model_fit = model_eng,
-                               y_axis_breaks = y_axis_breaks)+
-                               labs(title=main_title)
-
-
-  plts_fit_eng[[i]] = gp_eng
-  names(plts_fit_eng)[i] = names(fit_eng)[i]
-
+    k=k+1
+  }
 }
 
 ```
@@ -502,7 +477,7 @@ Ncols = length(sub_plts_fit_eng)
 sub_plts_fit_eng[[1]] <- sub_plts_fit_eng[[1]]+
    labs(
     title = "England (UK)",
-    subtitle = cancer.tit[which(names(cancer.tit)==names(subset_eng)[1])], 
+    subtitle = cancer.tit[which(names(cancer.tit)==names(plts_fit_eng)[1])], 
     x=NULL)+
     theme(
           legend.position = "none",
@@ -516,7 +491,7 @@ sub_plts_fit_eng[[i]] <- sub_plts_fit_eng[[i]]+
     x=NULL,
     y=NULL,
     title=NULL,
-    subtitle=cancer.tit[which(names(cancer.tit)==names(subset_eng)[i])])+
+    subtitle=cancer.tit[which(names(cancer.tit)==names(plts_fit_eng)[i])])+
     theme(legend.position = "none",
           plot.title = element_text(face="bold", size=20, hjust = 0),
           plot.subtitle = element_text(face="bold", size=18, hjust = 0))
@@ -529,7 +504,7 @@ sub_plts_fit_eng[[indx]] <- sub_plts_fit_eng[[indx]]+
                                x=NULL,
                                y=NULL,
                                title=NULL,
-                               subtitle=cancer.tit[which(names(cancer.tit)==names(subset_eng)[indx])])+
+                               subtitle=cancer.tit[which(names(cancer.tit)==names(plts_fit_eng)[indx])])+
                             guides(color = guide_legend(title = NULL))+
                             theme(
                               legend.text = element_text(size = 18),

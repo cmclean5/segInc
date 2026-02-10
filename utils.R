@@ -228,6 +228,63 @@ incidence_rates_ci5 <- function(x, cancer_id= NULL, country_id="82602099", model
 }
 
 
+
+fit_rates <- function(x, params, metric, 
+                      country = "Scotland (UK)", 
+                      cancer_type = "colorectal",
+                      aapc_years=10){
+  
+  model         = params[["model_fit"]]
+  model_opts    = params[["age_group_models"]]
+  x_age_bands   = params[["x_age_bands"]]
+  y_axis_breaks = params[["y_axis_breaks"]]
+  
+  for( j in 1:length(model_opts) ){
+    
+    age_band = names(model_opts)[j]
+    
+    tmp  = x[[age_band]][["bic"]]
+    
+    gofs = data.table::rbindlist(tmp, fill=TRUE, idcol="jps")
+    
+    best_model = gofs$jps[sapply(gofs[,.SD,.SDcols=metric], which.min)] 
+    
+    switch(best_model,
+           "none" = {model[[age_band]]$fit = "jp_none";
+           model_opts[age_band]  = "ll";
+           },
+           "one" = {model[[age_band]]$fit = "jp_one";
+           model_opts[age_band]  = "sg1";
+           },
+           "two" = {model[[age_band]]$fit = "jp_two";
+           model_opts[age_band]  = "sg2";
+           })
+  }
+  
+  main_title  = paste0(cancer_type, ", ", country)
+  
+  ## get 10 year aapc 
+  aapc = get_aapc(fit=x, cancer=cancer_type, country=country, 
+                  groups=model_opts, age_bands=x_age_bands, aapc_years=aapc_years)
+  
+  ## plot fit
+  gp <- ci5_data_fit_plot(x             = x,
+                          model_fit     = model,
+                          y_axis_breaks = y_axis_breaks)+
+    labs(title=main_title)
+  
+  
+  return(list(
+    model      = model,
+    model_opts = model_opts,
+    aapc       = aapc,
+    plt        = gp,
+    main_title = main_title))
+  
+}
+
+
+
 ci5_data_fit <- function(x, est_var="asr"){
   
   
