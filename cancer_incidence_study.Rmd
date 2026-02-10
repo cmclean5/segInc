@@ -84,8 +84,7 @@ country_codes = c("82600199", "82602099")
 ```{r}
 ## Read in Ci5plus data
 
-#file_name = "Ci5plus/data.csv"
-file_name = "~/ownCloud/Cancer_Informatics/Colorectal_Cancer/Images_for_Talks/CI5_analysis/Ci5plus/data.csv"
+file_name = "Ci5plus/data.csv"
 
 ci5_data <- read_csv(file_name) %>%
             filter( id_code %in% country_codes )
